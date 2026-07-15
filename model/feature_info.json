@@ -1,0 +1,32 @@
+{
+  "feature_order": [
+    "income",
+    "debt_ratio",
+    "missed_payments",
+    "credit_history_months"
+  ],
+  "feature_stats": {
+    "income": {
+      "min": 15000.0,
+      "max": 387727.72,
+      "mean": 66472.663362
+    },
+    "debt_ratio": {
+      "min": 0.0025,
+      "max": 0.9555,
+      "mean": 0.35426869
+    },
+    "missed_payments": {
+      "min": 0.0,
+      "max": 5.0,
+      "mean": 0.59155
+    },
+    "credit_history_months": {
+      "min": 1.0,
+      "max": 420.0,
+      "mean": 120.19865
+    }
+  },
+  "training_rows": 16000,
+  "test_rows": 4000
+}

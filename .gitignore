@@ -1,0 +1,7 @@
+/target
+bin
+include
+lib
+pyvenv.cfg
+.idea
+docs/
