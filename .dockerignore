@@ -1,0 +1,15 @@
+target/
+frontend/
+docs/
+model/bin
+model/include
+model/lib
+model/pyvenv.cfg
+model/*.csv
+model/*.pkl
+model/__pycache__
+backend/misbar.db
+backend/misbar.key
+backend/circuit/
+.git/
+.idea/

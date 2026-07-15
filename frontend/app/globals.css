@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-plex-sans), var(--font-plex-sans-arabic), sans-serif;
+  --font-mono: var(--font-plex-mono), var(--font-plex-sans-arabic), monospace;
+
+  --color-canvas: #eaeaec;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f2f2f4;
+  --color-surface-hover: #e7e7ea;
+  --color-border: #dadadf;
+  --color-border-soft: #e3e3e7;
+  --color-ink: #18181b;
+  --color-dim: #3f3f46;
+  --color-mute: #5c5c66;
+  --color-faint: #7c7c88;
+  --color-ghost: #9a9aa6;
+  --color-hairline: #c4c4cc;
+
+  --color-accent: #15803d;
+  --color-accent-soft: #16a34a;
+  --color-verified: #15803d;
+  --color-pending: #52525b;
+  --color-danger: #dc2626;
+}
+
+body {
+  background-color: var(--color-canvas);
+  background-image: radial-gradient(circle, rgba(24, 24, 27, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  color: var(--color-ink);
+}
+
+input::placeholder {
+  color: var(--color-ghost);
+}
+
+/*
+ * @theme inline bakes theme tokens directly into utility rules at build
+ * time (e.g. .font-sans{font-family:var(--font-plex-sans),...}), so
+ * overriding a --font-* custom property later has no effect — the utility
+ * never reads it back. Set font-family directly instead. This rule is
+ * unlayered, so it wins over Tailwind's @layer utilities regardless of
+ * source order.
+ *
+ * Deliberately NOT `:dir(rtl)` — Lightning CSS transpiles that to a
+ * `:lang(ar, fa, he, ...)` selector list for browser support, which
+ * matches by inherited `lang`, not computed direction. That silently
+ * re-applied the Arabic font to hash/timestamp spans explicitly marked
+ * dir="ltr" (they still inherit lang="ar"), breaking their monospacing.
+ * `html[dir="rtl"] *:not(...)` matches actual direction and correctly
+ * excludes ltr-marked subtrees.
+ */
+html[dir="rtl"] *:not([dir="ltr"]):not([dir="ltr"] *) {
+  font-family: var(--font-plex-sans-arabic), var(--font-plex-sans), sans-serif;
+}

@@ -21,10 +21,16 @@ pub struct ReceiptRecord {
     pub model_hash: String,
     pub policy_id: Uuid,
     pub policy_hash: String,
+    pub input: ModelInput,
     pub input_hash: String,
+    pub output: ModelOutput,
     pub output_hash: String,
     pub timestamp: DateTime<Utc>,
     pub signature: String,
+    /// Base64-encoded EZKL proof that the model actually produced `output`
+    /// from `input` — a stronger claim than the signature, which only
+    /// attests that misbar signed this record. See attestation/zk/mod.rs.
+    pub zk_proof: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,5 +38,6 @@ pub struct VerificationResult {
     pub receipt_id: Uuid,
     pub verified: bool,
     pub signature_valid: bool,
+    pub zk_proof_valid: Option<bool>,
     pub timestamp: DateTime<Utc>,
 }

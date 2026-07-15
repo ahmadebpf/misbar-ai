@@ -7,7 +7,6 @@ pub struct VerificationPackage {
     pub receipt: ReceiptRecord,
     pub verified: bool,
     pub signature_valid: bool,
-    /// Always false until zk proofs are implemented
     pub proof_valid: bool,
 }
 
@@ -15,7 +14,7 @@ pub fn build(receipt: ReceiptRecord, result: VerificationResult) -> Verification
     VerificationPackage {
         verified: result.verified,
         signature_valid: result.signature_valid,
-        proof_valid: false,
+        proof_valid: result.zk_proof_valid.unwrap_or(false),
         receipt,
     }
 }

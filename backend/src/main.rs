@@ -15,13 +15,9 @@ use axum::{
 };
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use uuid::Uuid;
 
 use execution::inference::OnnxSession;
 
-/// Canonical policy artifact for the MVP.
-/// Changing any content changes policy_hash, making the change auditable
-/// in every subsequent receipt.
 const POLICY_ARTIFACT: &str =
     "approved_threshold=700;review_threshold=580;max_debt_ratio=0.6;max_missed_payments=5;policy_version=v1.0.0";
 
@@ -34,12 +30,26 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let model_path = Path::new("../model/model.onnx");
-    let session = OnnxSession::load(model_path, Uuid::new_v4())?;
+    // Overridable so a deployment can mount persistent state (db, signing key)
+    // at a custom path instead of the working directory. Defaults match the
+    // previous hardcoded values, so local `cargo run` is unaffected.
+    let model_path = std::env::var("MISBAR_MODEL_PATH").unwrap_or_else(|_| "../model/model.onnx".into());
+    let database_url = std::env::var("MISBAR_DATABASE_URL").unwrap_or_else(|_| "sqlite://misbar.db".into());
+    let key_path = std::env::var("MISBAR_KEY_PATH").unwrap_or_else(|_| "misbar.key".into());
+    let circuit_dir = std::env::var("MISBAR_CIRCUIT_DIR").unwrap_or_else(|_| "circuit".into());
 
-    let store = store::Store::new();
+    let session = OnnxSession::load(Path::new(&model_path))?;
+
+    let store = store::Store::new(&database_url).await?;
     let registry = registry::Registry::new();
-    let gw = gateway::Gateway::new(session, store, registry, POLICY_ARTIFACT)?;
+    let gw = gateway::Gateway::new(
+        session,
+        store,
+        registry,
+        POLICY_ARTIFACT,
+        Path::new(&key_path),
+        Path::new(&circuit_dir),
+    )?;
     let state: api::AppState = Arc::new(gw);
 
     let app = Router::new()
@@ -47,6 +57,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/decision", post(api::post_decision))
         .route("/receipt/{id}", get(api::get_receipt))
         .route("/verify/{id}", get(api::get_verify))
+        .route("/receipts", get(api::list_receipts))
+        .route("/stats", get(api::get_stats))
         .layer(CorsLayer::permissive())
         .with_state(state);
 

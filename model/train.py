@@ -1,12 +1,21 @@
 """
 Trains the Misbar POC credit scoring model.
 
-Model choice: GradientBoostingClassifier (scikit-learn).
-Why not a neural net: four tabular features, small dataset, need an
-explainable model for a regulated-finance demo, and gradient-boosted trees
-export cleanly to ONNX. This is the right amount of complexity for a POC --
-not a toy (logistic regression alone would underfit the nonlinear
-debt_ratio x missed_payments interaction) and not overkill.
+Model choice: MLPClassifier (scikit-learn), preceded by a StandardScaler in
+the same pipeline. Previously this was a GradientBoostingClassifier, but
+tree ensembles export to ONNX as a single opaque `TreeEnsembleClassifier`
+op, which EZKL's ONNX frontend (tract) cannot parse at all -- there's no
+way to turn a decision tree's branching logic into an arithmetic circuit
+via EZKL. An MLP exports as plain Gemm/Add/Relu/Sigmoid ops, which EZKL
+can turn into a provable circuit. The StandardScaler is included in the
+exported ONNX graph (as Sub/Div ops) rather than done in Rust, so the
+scaling itself is part of what gets proven and the Rust side still just
+sends raw feature values.
+
+A small hidden-layer MLP still captures the nonlinear
+debt_ratio x missed_payments interaction that a plain logistic regression
+would underfit -- see generate.py's label formula -- while staying
+provable, unlike the tree ensemble it replaces.
 
 Feature order MUST match generate.py and the committed
 input_schema.json. This is the single biggest source of silent bugs in this
@@ -15,7 +24,7 @@ pipeline -- if you change the order here, update both of those too.
 Run:
     python train.py
 Output:
-    model.pkl        -- sklearn model (for evaluate.py / debugging only)
+    model.pkl        -- sklearn pipeline (for evaluate.py / debugging only)
     feature_info.json -- means/stds and feature order, used at export time
 """
 
@@ -24,9 +33,11 @@ import json
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 FEATURE_ORDER = ["income", "debt_ratio",
                  "missed_payments", "credit_history_months"]
@@ -40,19 +51,22 @@ def load_data(path: str = "synthetic_credit.csv") -> tuple[pd.DataFrame, pd.Seri
   return X, y
 
 
-def train(X: pd.DataFrame, y: pd.Series) -> GradientBoostingClassifier:
-  clf = GradientBoostingClassifier(
-      n_estimators=150,
-      max_depth=3,
-      learning_rate=0.08,
-      subsample=0.9,
-      random_state=RANDOM_STATE,
-  )
+def train(X: pd.DataFrame, y: pd.Series) -> Pipeline:
+  clf = Pipeline([
+      ("scaler", StandardScaler()),
+      ("mlp", MLPClassifier(
+          hidden_layer_sizes=(16, 8),
+          activation="relu",
+          alpha=1e-3,
+          max_iter=2000,
+          random_state=RANDOM_STATE,
+      )),
+  ])
   clf.fit(X, y)
   return clf
 
 
-def evaluate(clf: GradientBoostingClassifier, X_test: pd.DataFrame, y_test: pd.Series) -> None:
+def evaluate(clf: Pipeline, X_test: pd.DataFrame, y_test: pd.Series) -> None:
   y_pred = clf.predict(X_test)
   y_proba = clf.predict_proba(X_test)[:, 1]
 

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::domain::ReceiptRecord;
+use crate::domain::{ModelInput, ModelOutput, ReceiptRecord};
 
 /// The canonical payload that gets signed.
 ///
@@ -34,10 +34,13 @@ pub fn assemble(
     model_hash: String,
     policy_id: Uuid,
     policy_hash: String,
+    input: ModelInput,
     input_hash: String,
+    output: ModelOutput,
     output_hash: String,
     timestamp: DateTime<Utc>,
     signature: String,
+    zk_proof: Option<String>,
 ) -> ReceiptRecord {
     ReceiptRecord {
         receipt_id: Uuid::new_v4(),
@@ -46,9 +49,12 @@ pub fn assemble(
         model_hash,
         policy_id,
         policy_hash,
+        input,
         input_hash,
+        output,
         output_hash,
         timestamp,
         signature,
+        zk_proof,
     }
 }

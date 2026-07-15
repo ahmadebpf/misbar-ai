@@ -1,6 +1,8 @@
+use anyhow::Result;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use rand::rngs::OsRng;
+use std::path::Path;
 
 pub struct Keypair {
     signing_key: SigningKey,
@@ -8,10 +10,24 @@ pub struct Keypair {
 }
 
 impl Keypair {
-    pub fn generate() -> Self {
-        let signing_key = SigningKey::generate(&mut OsRng);
+    /// Load a keypair from `path` if it exists, otherwise generate one and save it.
+    /// The file stores the 32-byte raw signing key.
+    pub fn load_or_generate(path: &Path) -> Result<Self> {
+        let signing_key = if path.exists() {
+            let bytes = std::fs::read(path)?;
+            let arr: [u8; 32] = bytes
+                .try_into()
+                .map_err(|_| anyhow::anyhow!("invalid key file: expected 32 bytes"))?;
+            SigningKey::from_bytes(&arr)
+        } else {
+            let key = SigningKey::generate(&mut OsRng);
+            std::fs::write(path, key.to_bytes())?;
+            tracing::info!("generated new signing key → {}", path.display());
+            key
+        };
+
         let verifying_key = signing_key.verifying_key();
-        Self { signing_key, verifying_key }
+        Ok(Self { signing_key, verifying_key })
     }
 
     /// Sign arbitrary bytes. Returns base64-encoded signature.

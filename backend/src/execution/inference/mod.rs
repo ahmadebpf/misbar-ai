@@ -15,13 +15,22 @@ pub struct OnnxSession {
 }
 
 impl OnnxSession {
-    /// Load the ONNX model from disk. Computes model_hash from file bytes.
-    /// Call once at startup — the session is shared via Arc<Gateway>.
-    pub fn load(model_path: &Path, model_id: Uuid) -> Result<Self> {
+    /// Load the ONNX model from disk. Computes model_hash from file bytes and
+    /// derives a stable model_id (UUID v5) from that hash — same file, same ID.
+    pub fn load(model_path: &Path) -> Result<Self> {
         let model_hash = hashing::hash_file(model_path)?;
+
+        // Stable namespace for Misbar model IDs.
+        const MODEL_NS: Uuid = Uuid::from_bytes([
+            0x6b, 0xa7, 0xb8, 0x11, 0x9d, 0xad, 0x11, 0xd1,
+            0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8,
+        ]);
+        let model_id = Uuid::new_v5(&MODEL_NS, model_hash.as_bytes());
+
         let session = Session::builder()?.commit_from_file(model_path)?;
 
         tracing::info!("model loaded: {}", model_path.display());
+        tracing::info!("model_id:   {}", model_id);
         tracing::info!("model_hash: {}", model_hash);
 
         Ok(Self { session: Mutex::new(session), model_id, model_hash })
