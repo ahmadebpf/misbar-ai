@@ -48,10 +48,10 @@ COPY --from=circuit /build/backend/circuit /app/backend/circuit
 
 WORKDIR /app/backend
 EXPOSE 3000
-# misbar.key and the sqlite db are runtime state, not build artifacts —
+# saleem.key and the sqlite db are runtime state, not build artifacts —
 # default them under data/ so `docker run -v <volume>:/app/backend/data`
 # persists them across restarts/redeploys without extra -e flags.
 RUN mkdir -p data
-ENV MISBAR_KEY_PATH=data/misbar.key
-ENV MISBAR_DATABASE_URL=sqlite://data/misbar.db
+ENV SALEEM_KEY_PATH=data/saleem.key
+ENV SALEEM_DATABASE_URL=sqlite://data/saleem.db
 CMD ["./backend"]

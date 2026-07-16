@@ -42,11 +42,19 @@ Output:
 
 import joblib
 import numpy as np
-from onnx import helper, numpy_helper
+from onnx import StringStringEntryProto, helper, numpy_helper
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 
 FEATURE_ORDER = ["income", "debt_ratio", "missed_payments", "credit_history_months"]
+
+# Identifies this model artifact -- the Rust backend reads these back out of
+# model.onnx itself (via ort's Session::metadata()/.custom(), see
+# backend/src/execution/inference/mod.rs) rather than having a name/version
+# hardcoded or guessed at in backend code. Bump MODEL_VERSION whenever the
+# training data, architecture, or hyperparameters change meaningfully.
+MODEL_NAME = "credit-scoring"
+MODEL_VERSION = "v2.9.1"
 
 
 def prepend_standardization(onnx_model, mean, scale):
@@ -94,6 +102,9 @@ def main() -> None:
       options={id(mlp): {"zipmap": False}},
   )
   onnx_model = prepend_standardization(onnx_model, scaler.mean_, scaler.scale_)
+
+  onnx_model.metadata_props.append(StringStringEntryProto(key="model_name", value=MODEL_NAME))
+  onnx_model.metadata_props.append(StringStringEntryProto(key="model_version", value=MODEL_VERSION))
 
   with open("model.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())

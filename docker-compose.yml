@@ -1,0 +1,44 @@
+# Production stack: backend + frontend behind Caddy, which terminates TLS
+# for saleem.misbar.tech and auto-provisions/renews the Let's Encrypt cert
+# (needs DNS already pointed at this host and ports 80/443 reachable — see
+# docs/deploy.md). Backend and frontend expose no host ports themselves;
+# only Caddy is reachable from outside this machine.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - saleem-data:/app/backend/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Baked into the client bundle at build time (see frontend/Dockerfile)
+        # — changing the domain means rebuilding this image, not just restarting.
+        NEXT_PUBLIC_API_URL: https://saleem.misbar.tech/api
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+volumes:
+  saleem-data:
+  caddy-data:
+  caddy-config:

@@ -33,11 +33,15 @@ async fn main() -> anyhow::Result<()> {
     // Overridable so a deployment can mount persistent state (db, signing key)
     // at a custom path instead of the working directory. Defaults match the
     // previous hardcoded values, so local `cargo run` is unaffected.
-    let model_path = std::env::var("MISBAR_MODEL_PATH").unwrap_or_else(|_| "../model/model.onnx".into());
-    let database_url = std::env::var("MISBAR_DATABASE_URL").unwrap_or_else(|_| "sqlite://misbar.db".into());
-    let key_path = std::env::var("MISBAR_KEY_PATH").unwrap_or_else(|_| "misbar.key".into());
-    let circuit_dir = std::env::var("MISBAR_CIRCUIT_DIR").unwrap_or_else(|_| "circuit".into());
+    let model_path = std::env::var("SALEEM_MODEL_PATH").unwrap_or_else(|_| "../model/model.onnx".into());
+    let database_url = std::env::var("SALEEM_DATABASE_URL").unwrap_or_else(|_| "sqlite://saleem.db".into());
+    let key_path = std::env::var("SALEEM_KEY_PATH").unwrap_or_else(|_| "saleem.key".into());
+    let circuit_dir = std::env::var("SALEEM_CIRCUIT_DIR").unwrap_or_else(|_| "circuit".into());
 
+    // model_name/model_version aren't set here — OnnxSession::load reads
+    // them out of model.onnx's own metadata (embedded by
+    // model/export_onnx.py), so the model's identity travels with the
+    // artifact instead of being a separate string to keep in sync.
     let session = OnnxSession::load(Path::new(&model_path))?;
 
     let store = store::Store::new(&database_url).await?;
@@ -57,6 +61,9 @@ async fn main() -> anyhow::Result<()> {
         .route("/decision", post(api::post_decision))
         .route("/receipt/{id}", get(api::get_receipt))
         .route("/verify/{id}", get(api::get_verify))
+        .route("/verify", post(api::post_verify))
+        .route("/trace/{decision_id}", get(api::get_trace))
+        .route("/traces", get(api::list_traces))
         .route("/receipts", get(api::list_receipts))
         .route("/stats", get(api::get_stats))
         .layer(CorsLayer::permissive())

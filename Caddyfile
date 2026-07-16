@@ -1,0 +1,13 @@
+saleem.misbar.tech {
+	# Caddy auto-provisions and renews a Let's Encrypt cert for this domain
+	# on startup — requires DNS already pointed here and ports 80/443
+	# reachable from the internet (see docs/deploy.md).
+
+	handle_path /api/* {
+		reverse_proxy backend:3000
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}

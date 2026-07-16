@@ -36,6 +36,25 @@ input::placeholder {
 }
 
 /*
+ * For dir="ltr" inputs whose typed VALUE must stay Latin/monospace (pasted
+ * receipt IDs, JSON) but whose placeholder is localized Arabic guidance
+ * text — dir="ltr" excludes them from the global RTL font-priority rule
+ * above, so the placeholder would otherwise fall back through the Latin-
+ * first font-mono stack instead of rendering in the Arabic font.
+ *
+ * text-align/direction have to go on the input itself, not ::placeholder —
+ * ::placeholder only supports a limited property subset (font/color-type
+ * properties) and silently ignores text-align/direction set directly on it.
+ */
+.placeholder-arabic:placeholder-shown {
+  direction: rtl;
+  text-align: right;
+}
+.placeholder-arabic::placeholder {
+  font-family: var(--font-plex-sans-arabic), var(--font-plex-sans), sans-serif;
+}
+
+/*
  * @theme inline bakes theme tokens directly into utility rules at build
  * time (e.g. .font-sans{font-family:var(--font-plex-sans),...}), so
  * overriding a --font-* custom property later has no effect — the utility

@@ -9,9 +9,9 @@ use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::domain::ModelInput;
+use crate::domain::{ModelInput, ReceiptRecord};
 use crate::gateway::Gateway;
-use crate::verification::{exports, verifier};
+use crate::verification::exports;
 
 pub type AppState = Arc<Gateway>;
 
@@ -67,13 +67,56 @@ pub async fn get_verify(
     State(gw): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match gw.store().get_receipt(&id).await {
-        Ok(Some(receipt)) => {
-            let result = verifier::verify(&receipt, gw.keypair(), gw.zk_config()).await;
+    match gw.verify_receipt(&id).await {
+        Ok(Some((receipt, result))) => {
             let package = exports::build(receipt, result);
             (StatusCode::OK, Json(serde_json::to_value(package).unwrap())).into_response()
         }
         Ok(None) => not_found("receipt"),
+        Err(e) => internal_error(e),
+    }
+}
+
+/// Standalone verification: the caller pastes a full receipt (the same
+/// shape `GET /receipt/{id}` returns) and it's re-verified without
+/// requiring it to exist in this instance's store — matches docs/product.md's
+/// portable "Verification Package" concept.
+pub async fn post_verify(
+    State(gw): State<AppState>,
+    Json(receipt): Json<ReceiptRecord>,
+) -> impl IntoResponse {
+    let (receipt, result) = gw.verify_external(receipt).await;
+    let package = exports::build(receipt, result);
+    (StatusCode::OK, Json(serde_json::to_value(package).unwrap())).into_response()
+}
+
+pub async fn get_trace(
+    State(gw): State<AppState>,
+    Path(decision_id): Path<Uuid>,
+) -> impl IntoResponse {
+    match gw.store().list_zk_traces_for_decision(&decision_id).await {
+        Ok(traces) => (
+            StatusCode::OK,
+            Json(json!({ "decision_id": decision_id, "traces": traces })),
+        )
+            .into_response(),
+        Err(e) => internal_error(e),
+    }
+}
+
+pub async fn list_traces(
+    State(gw): State<AppState>,
+    Query(params): Query<ListParams>,
+) -> impl IntoResponse {
+    let limit = params.limit.unwrap_or(20).clamp(1, 100);
+    let offset = params.offset.unwrap_or(0).max(0);
+
+    match gw.store().list_zk_traces(limit, offset).await {
+        Ok(traces) => (
+            StatusCode::OK,
+            Json(json!({ "traces": traces, "limit": limit, "offset": offset })),
+        )
+            .into_response(),
         Err(e) => internal_error(e),
     }
 }
@@ -98,11 +141,28 @@ pub async fn list_receipts(
     );
 
     match (receipts, total) {
-        (Ok(receipts), Ok(total)) => (
-            StatusCode::OK,
-            Json(json!({ "receipts": receipts, "total": total, "limit": limit, "offset": offset })),
-        )
-            .into_response(),
+        (Ok(receipts), Ok(total)) => {
+            let receipts: Vec<serde_json::Value> = receipts
+                .into_iter()
+                .map(|r| {
+                    let model = gw.registry().get_model(&r.model_id);
+                    let policy = gw.registry().get_policy(&r.policy_id);
+                    let mut value = serde_json::to_value(&r).unwrap();
+                    if let Some(obj) = value.as_object_mut() {
+                        obj.insert("model_name".into(), json!(model.as_ref().map(|m| &m.name)));
+                        obj.insert("model_version".into(), json!(model.as_ref().map(|m| &m.version)));
+                        obj.insert("policy_name".into(), json!(policy.as_ref().map(|p| &p.name)));
+                        obj.insert("policy_version".into(), json!(policy.as_ref().map(|p| &p.version)));
+                    }
+                    value
+                })
+                .collect();
+            (
+                StatusCode::OK,
+                Json(json!({ "receipts": receipts, "total": total, "limit": limit, "offset": offset })),
+            )
+                .into_response()
+        }
         (Err(e), _) | (_, Err(e)) => internal_error(e),
     }
 }

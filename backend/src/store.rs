@@ -4,7 +4,7 @@ use sqlx::{sqlite::SqliteConnectOptions, FromRow, SqlitePool};
 use std::str::FromStr;
 use uuid::Uuid;
 
-use crate::domain::ReceiptRecord;
+use crate::domain::{ReceiptRecord, ZkTrace};
 
 /// SQLite row — all fields stored as TEXT (input/output as JSON text).
 #[derive(FromRow)]
@@ -115,5 +115,108 @@ impl Store {
             .fetch_one(&self.pool)
             .await?;
         Ok(count)
+    }
+
+    pub async fn save_zk_trace(&self, trace: &ZkTrace) -> Result<()> {
+        let witness_input = trace
+            .witness_input
+            .as_ref()
+            .filter(|v| !v.is_null())
+            .map(serde_json::to_string)
+            .transpose()
+            .context("serialize witness_input")?;
+        let circuit_public_values = trace
+            .circuit_public_values
+            .as_ref()
+            .map(serde_json::to_string)
+            .transpose()
+            .context("serialize circuit_public_values")?;
+
+        sqlx::query(
+            "INSERT INTO zk_traces
+             (trace_id, decision_id, receipt_id, phase, source, success,
+              witness_input, circuit_public_values, error_message, stdout_tail,
+              duration_ms, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(trace.trace_id.to_string())
+        .bind(trace.decision_id.to_string())
+        .bind(trace.receipt_id.map(|id| id.to_string()))
+        .bind(&trace.phase)
+        .bind(&trace.source)
+        .bind(trace.success)
+        .bind(witness_input)
+        .bind(circuit_public_values)
+        .bind(&trace.error_message)
+        .bind(&trace.stdout_tail)
+        .bind(trace.duration_ms)
+        .bind(trace.created_at.to_rfc3339())
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn list_zk_traces_for_decision(&self, decision_id: &Uuid) -> Result<Vec<ZkTrace>> {
+        let rows = sqlx::query_as::<_, ZkTraceRow>(
+            "SELECT * FROM zk_traces WHERE decision_id = ? ORDER BY created_at ASC",
+        )
+        .bind(decision_id.to_string())
+        .fetch_all(&self.pool)
+        .await?;
+
+        rows.into_iter().map(ZkTrace::try_from).collect()
+    }
+
+    pub async fn list_zk_traces(&self, limit: i64, offset: i64) -> Result<Vec<ZkTrace>> {
+        let rows = sqlx::query_as::<_, ZkTraceRow>(
+            "SELECT * FROM zk_traces ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        )
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await?;
+
+        rows.into_iter().map(ZkTrace::try_from).collect()
+    }
+}
+
+#[derive(FromRow)]
+struct ZkTraceRow {
+    trace_id: String,
+    decision_id: String,
+    receipt_id: Option<String>,
+    phase: String,
+    source: String,
+    success: bool,
+    witness_input: Option<String>,
+    circuit_public_values: Option<String>,
+    error_message: Option<String>,
+    stdout_tail: Option<String>,
+    duration_ms: i64,
+    created_at: String,
+}
+
+impl TryFrom<ZkTraceRow> for ZkTrace {
+    type Error = anyhow::Error;
+
+    fn try_from(r: ZkTraceRow) -> Result<Self> {
+        Ok(ZkTrace {
+            trace_id: Uuid::parse_str(&r.trace_id).context("trace_id")?,
+            decision_id: Uuid::parse_str(&r.decision_id).context("decision_id")?,
+            receipt_id: r.receipt_id.map(|id| Uuid::parse_str(&id)).transpose().context("receipt_id")?,
+            phase: r.phase,
+            source: r.source,
+            success: r.success,
+            witness_input: r.witness_input.map(|s| serde_json::from_str(&s)).transpose().context("witness_input")?,
+            circuit_public_values: r
+                .circuit_public_values
+                .map(|s| serde_json::from_str(&s))
+                .transpose()
+                .context("circuit_public_values")?,
+            error_message: r.error_message,
+            stdout_tail: r.stdout_tail,
+            duration_ms: r.duration_ms,
+            created_at: r.created_at.parse::<DateTime<Utc>>().context("created_at")?,
+        })
     }
 }

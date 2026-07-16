@@ -1,5 +1,5 @@
 """
-Trains the Misbar POC credit scoring model.
+Trains the Saleem POC credit scoring model.
 
 Model choice: MLPClassifier (scikit-learn), preceded by a StandardScaler in
 the same pipeline. Previously this was a GradientBoostingClassifier, but

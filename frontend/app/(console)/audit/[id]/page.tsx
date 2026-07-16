@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { getReceipt, verifyReceipt } from "@/lib/api";
+import { getReceipt, verifyReceipt, getTrace } from "@/lib/api";
 import { Ltr } from "@/components/Ltr";
 import { SarIcon } from "@/components/SarIcon";
 import { VerifyPanel } from "@/components/VerifyPanel";
+import { ZkTraceView } from "@/components/ZkTraceView";
 import { getDict } from "@/lib/i18n/server";
 import { formatRiyadhStamp } from "@/lib/i18n/format";
 import { statusForScore, statusClassName, statusLabel } from "@/lib/status";
@@ -38,6 +39,7 @@ export default async function ReceiptDetail({ params }: Props) {
     getReceipt(id).catch(() => null),
     verifyReceipt(id).catch(() => null),
   ]);
+  const trace = receipt ? await getTrace(receipt.decision_id).catch(() => null) : null;
 
   if (!receipt) {
     return (
@@ -158,6 +160,12 @@ export default async function ReceiptDetail({ params }: Props) {
           inputHash={receipt.input_hash}
           outputHash={receipt.output_hash}
         />
+      </div>
+
+      <div className="mb-5">
+        <div className="mb-2.5 text-[13px] font-semibold text-ink">{t.trace.title}</div>
+        <p className="m-0 mb-2.5 text-[12.5px] leading-relaxed text-mute">{t.trace.subtitle}</p>
+        <ZkTraceView traces={trace?.traces ?? []} />
       </div>
 
       <details className="rounded-lg border border-border-soft bg-surface-alt mb-5">

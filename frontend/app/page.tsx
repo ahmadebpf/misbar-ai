@@ -16,7 +16,16 @@ export default async function Landing() {
       <header className="flex items-center justify-between max-w-[1120px] mx-auto px-6 pt-6">
         <div dir="ltr" className="flex items-center gap-[9px]">
           <Logo size={18} />
-          <span className="font-mono font-semibold text-[15px] tracking-tight">misbar</span>
+          <span className="flex items-center gap-1.5">
+            <span className="font-mono font-semibold text-[15px] tracking-tight">Saleem</span>
+            <span className="text-ghost text-[13px]">·</span>
+            <span
+              className="text-[17px]"
+              style={{ fontFamily: "var(--font-noto-naskh), var(--font-plex-sans-arabic), sans-serif" }}
+            >
+              سليم
+            </span>
+          </span>
         </div>
         <div className="flex items-center gap-3">
           <LocaleToggle />
@@ -63,7 +72,7 @@ export default async function Landing() {
             </Ltr>
             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-semibold uppercase tracking-[0.02em] text-verified bg-verified/10 border border-verified/30">
               <span className="w-1.5 h-1.5 rounded-full bg-verified" />
-              {t.landing.signatureValid}
+              {t.landing.verified}
             </span>
           </div>
           <div className="flex flex-col gap-[9px] text-[12.5px]">

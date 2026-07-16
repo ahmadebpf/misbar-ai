@@ -14,6 +14,7 @@ export function Nav() {
     { href: "/console", label: t.nav.dashboard, match: (p: string) => p === "/console" },
     { href: "/audit", label: t.nav.audit, match: (p: string) => p.startsWith("/audit") },
     { href: "/demo", label: t.nav.demo, match: (p: string) => p.startsWith("/demo") },
+    { href: "/verify", label: t.nav.verify, match: (p: string) => p.startsWith("/verify") },
   ];
 
   return (
@@ -21,8 +22,17 @@ export function Nav() {
       <div className="max-w-[1240px] mx-auto flex items-center justify-between h-14 px-6">
         <Link href="/" dir="ltr" className="flex items-center gap-[9px] shrink-0">
           <Logo size={18} />
-          <span className="font-mono font-semibold text-[15px] tracking-tight text-ink">
-            misbar
+          <span className="flex items-center gap-1.5 shrink-0">
+            <span className="font-mono font-semibold text-[15px] tracking-tight text-ink">
+              Saleem
+            </span>
+            <span className="text-ghost text-[13px]">·</span>
+            <span
+              className="text-[17px] text-ink"
+              style={{ fontFamily: "var(--font-noto-naskh), var(--font-plex-sans-arabic), sans-serif" }}
+            >
+              سليم
+            </span>
           </span>
         </Link>
 

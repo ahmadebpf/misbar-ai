@@ -11,7 +11,7 @@ import { statusForScore, statusClassName, statusLabel } from "@/lib/status";
 
 const PAGE_SIZE = 8;
 const FETCH_LIMIT = 100;
-const COLS = "grid-cols-[1.1fr_1.1fr_0.8fr_0.7fr_1.1fr_0.5fr]";
+const COLS = "grid-cols-[1fr_1fr_0.95fr_0.7fr_0.55fr_0.95fr_0.4fr]";
 
 export default function AuditCenter() {
   const { locale, dict: t } = useLocale();
@@ -89,6 +89,7 @@ export default function AuditCenter() {
             >
               <div>{t.audit.colReceiptId}</div>
               <div>{t.audit.colDecisionId}</div>
+              <div>{t.common.colModel}</div>
               <div>{t.common.colStatus}</div>
               <div>{t.common.colScore}</div>
               <div>{t.audit.colTimestamp}</div>
@@ -103,6 +104,15 @@ export default function AuditCenter() {
                 >
                   <HashDisplay value={r.receipt_id} chars={6} />
                   <HashDisplay value={r.decision_id} chars={6} />
+                  <div className="min-w-0">
+                    {r.model_name ? (
+                      <span className="font-mono text-[12px] text-dim truncate block" title={r.model_name}>
+                        {r.model_name}
+                      </span>
+                    ) : (
+                      <HashDisplay value={r.model_id} chars={6} />
+                    )}
+                  </div>
                   <div>
                     {status ? (
                       <span
@@ -114,7 +124,9 @@ export default function AuditCenter() {
                       <span className="text-ghost">—</span>
                     )}
                   </div>
-                  <Ltr className="font-mono text-dim block">{r.output?.score ?? "—"}</Ltr>
+                  <div className="font-mono text-dim">
+                    <Ltr>{r.output?.score ?? "—"}</Ltr>
+                  </div>
                   <div className="font-mono text-[12px] text-faint">
                     <Ltr>{formatRiyadhStamp(r.timestamp)}</Ltr> {t.common.riyadhTimeShort}
                   </div>

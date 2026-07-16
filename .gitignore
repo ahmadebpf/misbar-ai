@@ -6,5 +6,7 @@ pyvenv.cfg
 .idea
 docs/
 backend/circuit/
+backend/saleem.key
+backend/saleem.db
 backend/misbar.key
 backend/misbar.db

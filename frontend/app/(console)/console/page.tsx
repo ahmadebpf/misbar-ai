@@ -7,7 +7,7 @@ import { getDict } from "@/lib/i18n/server";
 import { formatRiyadhStamp, formatCount } from "@/lib/i18n/format";
 import { statusForScore, statusClassName, statusLabel } from "@/lib/status";
 
-const COLS = "grid-cols-[1.2fr_1.2fr_0.8fr_0.7fr_1fr_0.5fr]";
+const COLS = "grid-cols-[1.05fr_1.05fr_0.95fr_0.7fr_0.55fr_0.9fr_0.4fr]";
 
 export default async function Dashboard() {
   const { dict: t } = await getDict();
@@ -52,6 +52,7 @@ export default async function Dashboard() {
           <div className={`grid ${COLS} px-5 py-2.5 text-[11px] tracking-[0.04em] uppercase text-ghost border-b border-border`}>
             <div>{t.dashboard.colReceiptId}</div>
             <div>{t.dashboard.colDecisionId}</div>
+            <div>{t.common.colModel}</div>
             <div>{t.common.colStatus}</div>
             <div>{t.common.colScore}</div>
             <div>{t.dashboard.colTimestamp}</div>
@@ -66,6 +67,15 @@ export default async function Dashboard() {
               >
                 <HashDisplay value={r.receipt_id} chars={6} />
                 <HashDisplay value={r.decision_id} chars={6} />
+                <div className="min-w-0">
+                  {r.model_name ? (
+                    <span className="font-mono text-[12px] text-dim truncate block" title={r.model_name}>
+                      {r.model_name}
+                    </span>
+                  ) : (
+                    <HashDisplay value={r.model_id} chars={6} />
+                  )}
+                </div>
                 <div>
                   {status ? (
                     <span
@@ -77,7 +87,9 @@ export default async function Dashboard() {
                     <span className="text-ghost">—</span>
                   )}
                 </div>
-                <Ltr className="font-mono text-dim block">{r.output?.score ?? "—"}</Ltr>
+                <div className="font-mono text-dim">
+                  <Ltr>{r.output?.score ?? "—"}</Ltr>
+                </div>
                 <div className="font-mono text-[12px] text-faint">
                   <Ltr>{formatRiyadhStamp(r.timestamp)}</Ltr> {t.common.riyadhTimeShort}
                 </div>

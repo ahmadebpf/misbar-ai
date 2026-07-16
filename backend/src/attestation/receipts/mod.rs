@@ -28,7 +28,9 @@ pub fn signable_payload(
     .into_bytes()
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn assemble(
+    receipt_id: Uuid,
     decision_id: Uuid,
     model_id: Uuid,
     model_hash: String,
@@ -43,7 +45,7 @@ pub fn assemble(
     zk_proof: Option<String>,
 ) -> ReceiptRecord {
     ReceiptRecord {
-        receipt_id: Uuid::new_v4(),
+        receipt_id,
         decision_id,
         model_id,
         model_hash,

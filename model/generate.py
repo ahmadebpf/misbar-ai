@@ -1,5 +1,5 @@
 """
-Generates synthetic credit application data for the Misbar POC model.
+Generates synthetic credit application data for the Saleem POC model.
 
 This is NOT real credit data. It's a rule-based simulation used to give the
 classifier something realistic to learn from. The ground-truth label is
