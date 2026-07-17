@@ -61,16 +61,21 @@ export default async function Dashboard() {
           {recent.receipts.map((r) => {
             const status = typeof r.output?.score === "number" ? statusForScore(r.output.score) : null;
             return (
-              <div
+              <Link
                 key={r.receipt_id}
-                className={`grid ${COLS} items-center px-5 py-3 text-[13px] border-b border-border-soft last:border-0 hover:bg-surface-hover`}
+                href={`/audit/${r.receipt_id}`}
+                className={`group grid ${COLS} items-center px-5 py-3 text-[13px] border-b border-border-soft last:border-0 hover:bg-surface-hover cursor-pointer`}
               >
                 <HashDisplay value={r.receipt_id} chars={6} />
                 <HashDisplay value={r.decision_id} chars={6} />
                 <div className="min-w-0">
                   {r.model_name ? (
-                    <span className="font-mono text-[12px] text-dim truncate block" title={r.model_name}>
+                    <span
+                      className="font-mono text-[12px] text-dim truncate block"
+                      title={r.model_version ? `${r.model_name} ${r.model_version}` : r.model_name}
+                    >
                       {r.model_name}
+                      {r.model_version && <span className="text-ghost"> {r.model_version}</span>}
                     </span>
                   ) : (
                     <HashDisplay value={r.model_id} chars={6} />
@@ -93,13 +98,10 @@ export default async function Dashboard() {
                 <div className="font-mono text-[12px] text-faint">
                   <Ltr>{formatRiyadhStamp(r.timestamp)}</Ltr> {t.common.riyadhTimeShort}
                 </div>
-                <Link
-                  href={`/audit/${r.receipt_id}`}
-                  className="text-[12.5px] text-mute hover:text-ink transition-colors"
-                >
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-border text-[11.5px] text-mute group-hover:text-ink group-hover:border-hairline transition-colors justify-self-end">
                   {t.dashboard.view}
-                </Link>
-              </div>
+                </span>
+              </Link>
             );
           })}
         </div>

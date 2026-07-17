@@ -107,30 +107,21 @@ export default async function Landing() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-0 relative">
           <div className="hidden sm:block absolute top-[19px] left-[16.6%] right-[16.6%] h-px bg-border" />
           {steps.map((s) => (
-            <div key={s.n} className="text-center px-7 relative">
+            <Link key={s.n} href={s.href} className="group block text-center px-7 relative">
               <div
-                className={`w-[38px] h-[38px] mx-auto mb-5 rounded-full bg-canvas border flex items-center justify-center font-mono text-[13px] relative z-10 ${
-                  s.active ? "border-accent text-accent" : "border-hairline text-dim"
+                className={`w-[38px] h-[38px] mx-auto mb-5 rounded-full bg-canvas border flex items-center justify-center font-mono text-[13px] relative z-10 transition-colors ${
+                  s.active
+                    ? "border-accent text-accent"
+                    : "border-hairline text-dim group-hover:border-accent group-hover:text-accent"
                 }`}
               >
                 <Ltr>{s.n}</Ltr>
               </div>
-              <div className="text-[14.5px] font-semibold mb-2">{s.title}</div>
+              <div className="text-[14.5px] font-semibold mb-2 group-hover:text-accent transition-colors">{s.title}</div>
               <div className="text-[13px] leading-[1.6] text-faint">{s.body}</div>
-            </div>
+            </Link>
           ))}
         </div>
-      </section>
-
-      <section className="border-t border-border px-6 pt-14 pb-[72px] text-center">
-        <h2 className="m-0 mb-3 text-[22px] font-semibold">{t.landing.finalTitle}</h2>
-        <p className="m-0 mb-[26px] text-sm text-faint">{t.landing.finalSub}</p>
-        <Link
-          href="/verify"
-          className="inline-block px-[26px] py-[13px] rounded-md bg-accent/10 border border-accent text-accent text-[14px] font-semibold hover:bg-accent/20 transition-colors"
-        >
-          {t.landing.finalCta}
-        </Link>
       </section>
     </div>
   );

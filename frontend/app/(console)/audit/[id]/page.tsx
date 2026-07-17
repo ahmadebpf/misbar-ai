@@ -155,6 +155,16 @@ export default async function ReceiptDetail({ params }: Props) {
         </div>
       )}
 
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent/30 bg-accent/5 px-4 py-3">
+        <span className="text-[12.5px] text-mute">{t.receipt.nextVerifyHint}</span>
+        <Link
+          href={`/verify?receipt=${receipt.receipt_id}`}
+          className="shrink-0 text-[12.5px] font-semibold text-accent hover:text-accent-soft transition-colors"
+        >
+          {t.receipt.nextVerifyCta}
+        </Link>
+      </div>
+
       <div className="mb-5">
         <VerifyPanel
           input={receipt.input}

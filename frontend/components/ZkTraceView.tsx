@@ -86,10 +86,17 @@ function TraceRow({ trace }: { trace: ZkTrace }) {
               <div className="text-[10.5px] font-medium text-ghost uppercase tracking-wide mb-2">
                 {t.trace.circuitOutput}
               </div>
-              <div className="flex flex-col gap-1">
-                <ValueRow label={t.trace.circuitClass} value={circuitValues[4]} />
-                <ValueRow label={t.trace.circuitProbBad} value={circuitValues[5].toFixed(4)} />
-                <ValueRow label={t.trace.circuitProbGood} value={circuitValues[6].toFixed(4)} />
+              <div className="flex items-center justify-between gap-3 text-[12px]">
+                <span className="text-faint">{t.trace.circuitClass}</span>
+                <span
+                  className={`inline-block px-2 py-[3px] rounded text-[10.5px] font-medium tracking-[0.03em] uppercase border ${
+                    circuitValues[4] === 1
+                      ? "text-verified bg-verified/10 border-verified/30"
+                      : "text-danger bg-danger/10 border-danger/30"
+                  }`}
+                >
+                  {circuitValues[4] === 1 ? t.demo.approved : t.demo.declined}
+                </span>
               </div>
               <div className="mt-2 pt-2 border-t border-border-soft text-[10.5px] text-ghost leading-relaxed">
                 {t.trace.driftNote}

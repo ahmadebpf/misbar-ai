@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   verifyReceipt,
   verifyExternal,
@@ -51,9 +52,9 @@ function ResultCard({ outcome }: { outcome: VerifyOutcome }) {
   );
 }
 
-function LookupForm() {
+function LookupForm({ initialId }: { initialId?: string }) {
   const { dict: t, locale } = useLocale();
-  const [id, setId] = useState("");
+  const [id, setId] = useState(initialId ?? "");
   const [loading, setLoading] = useState(false);
   const [outcome, setOutcome] = useState<VerifyOutcome | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -224,8 +225,10 @@ function RecentActivity() {
   );
 }
 
-export default function VerifyPage() {
+function VerifyContent() {
   const { dict: t } = useLocale();
+  const searchParams = useSearchParams();
+  const initialId = searchParams.get("receipt") ?? undefined;
 
   return (
     <div className="max-w-[820px]">
@@ -235,11 +238,19 @@ export default function VerifyPage() {
       </div>
 
       <div className="flex flex-col gap-5">
-        <LookupForm />
+        <LookupForm initialId={initialId} />
         <PasteForm />
       </div>
 
       <RecentActivity />
     </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerifyContent />
+    </Suspense>
   );
 }

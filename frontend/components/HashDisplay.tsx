@@ -15,7 +15,9 @@ export function HashDisplay({ value, chars = 8, label }: Props) {
   const [copied, setCopied] = useState(false);
   const safeValue = value ?? "";
 
-  const copy = () => {
+  const copy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     navigator.clipboard.writeText(safeValue).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 1200);
