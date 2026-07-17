@@ -4,6 +4,7 @@ import { Ltr } from "@/components/Ltr";
 import { SarIcon } from "@/components/SarIcon";
 import { VerifyPanel } from "@/components/VerifyPanel";
 import { ZkTraceView } from "@/components/ZkTraceView";
+import { CopyJsonButton } from "@/components/CopyJsonButton";
 import { getDict } from "@/lib/i18n/server";
 import { formatRiyadhStamp } from "@/lib/i18n/format";
 import { statusForScore, statusClassName, statusLabel } from "@/lib/status";
@@ -91,6 +92,7 @@ export default async function ReceiptDetail({ params }: Props) {
               {statusLabel(status, t)}
             </span>
           )}
+          <CopyJsonButton data={receipt} label={t.receipt.copyFullReceipt} />
         </div>
       </div>
 

@@ -8,10 +8,21 @@ use std::time::Instant;
 use tokio::process::Command;
 use uuid::Uuid;
 
-use crate::domain::ModelInput;
+use crate::domain::{ModelInput, ModelOutput};
 use decode::InstanceScales;
 
 const TAIL_CHARS: usize = 4000;
+
+// Tolerances for binding-checking a proof's own decoded public values
+// against the receipt's claimed input/output (see `check_binding`).
+// Input echo is just fixed-point rounding (error bound is
+// 0.5 / 2^input_scale, ~0.00024 at scale 11) — 0.01 leaves comfortable
+// margin while still being far tighter than any real tamper. Output has
+// the documented quantization drift (up to ~10-15 points on prob_good in
+// testing, see docs/ezkl.md) — 0.15 tolerates that while still catching a
+// fabricated output.
+const INPUT_TOLERANCE: f64 = 0.01;
+const OUTPUT_TOLERANCE: f64 = 0.15;
 
 /// Paths to the circuit artifacts produced once by `scripts/zk_setup.sh`
 /// (see docs/ezkl.md). Nothing in this module generates these — it only
@@ -108,21 +119,62 @@ struct StageOutcome {
 }
 
 /// Feature order must match execution/inference/mod.rs::extract_features.
-fn witness_input_json(input: &ModelInput) -> anyhow::Result<Value> {
+fn extract_input_features(input: &ModelInput) -> anyhow::Result<[f64; 4]> {
     let f = |key: &str| -> anyhow::Result<f64> {
         input
             .get(key)
             .and_then(|v| v.as_f64())
             .ok_or_else(|| anyhow::anyhow!("missing or invalid field: {}", key))
     };
-    Ok(json!({
-        "input_data": [[
-            f("income")?,
-            f("debt_ratio")?,
-            f("missed_payments")?,
-            f("credit_history_months")?,
-        ]]
-    }))
+    Ok([
+        f("income")?,
+        f("debt_ratio")?,
+        f("missed_payments")?,
+        f("credit_history_months")?,
+    ])
+}
+
+fn witness_input_json(input: &ModelInput) -> anyhow::Result<Value> {
+    let features = extract_input_features(input)?;
+    Ok(json!({ "input_data": [features] }))
+}
+
+/// Cross-checks the circuit's own decoded public values (see
+/// `decode_proof_instances`) against what the receipt actually claims —
+/// without this, a valid `zk_proof` from any receipt can be paired with
+/// fabricated `input`/`output` fields and still report `proof_valid: true`,
+/// since ezkl's `verify` only checks the proof's internal validity, not
+/// that it's *for* this input/output. Layout is fixed by this model's
+/// circuit (`backend/scripts/calibration.json` / `zk_setup.sh`):
+/// `[income, debt_ratio, missed_payments, credit_history_months, label, prob_bad, prob_good]`.
+///
+/// Returns `Ok(true/false)` when the comparison could be made, `Err(reason)`
+/// when it couldn't (missing fields, unexpected circuit shape) — a `None`/
+/// `Err` result does NOT fail the proof, since that's an operational gap,
+/// not evidence of tampering (the proof itself is still cryptographically
+/// intact either way).
+fn check_binding(circuit_values: &[f64], input: &ModelInput, output: &ModelOutput) -> Result<bool, String> {
+    if circuit_values.len() < 7 {
+        return Err(format!("expected 7 decoded circuit values, got {}", circuit_values.len()));
+    }
+
+    let claimed_input = extract_input_features(input).map_err(|e| e.to_string())?;
+    for (i, claimed) in claimed_input.iter().enumerate() {
+        if (circuit_values[i] - claimed).abs() > INPUT_TOLERANCE {
+            return Ok(false);
+        }
+    }
+
+    let claimed_prob_good = output
+        .get("prob_good")
+        .and_then(|v| v.as_f64())
+        .ok_or_else(|| "output missing prob_good".to_string())?;
+    let circuit_prob_good = circuit_values[6];
+    if (circuit_prob_good - claimed_prob_good).abs() > OUTPUT_TOLERANCE {
+        return Ok(false);
+    }
+
+    Ok(true)
 }
 
 fn work_dir(id: &Uuid) -> PathBuf {
@@ -313,11 +365,20 @@ async fn prove_in(cfg: &ZkConfig, dir: &Path, input: &ModelInput) -> ZkOutcome {
     }
 }
 
-/// Verifies a base64-encoded proof against the fixed verifying key.
-/// `success` reflects whether the proof was accepted — ezkl's `verify`
-/// subcommand exits non-zero for a structurally invalid or tampered proof,
-/// which this treats the same as any other verify failure.
-pub async fn verify(cfg: &ZkConfig, proof_b64: &str) -> ZkOutcome {
+/// Verifies a base64-encoded proof against the fixed verifying key, AND
+/// that the proof's own decoded public values actually match what
+/// `expected_input`/`expected_output` claim (see `check_binding`) — a
+/// structurally valid proof from a different decision, paired with
+/// fabricated input/output on the outer receipt, now fails this.
+/// `success` reflects both checks — ezkl's `verify` subcommand exits
+/// non-zero for a structurally invalid or tampered proof, and the binding
+/// check independently can flip a structurally-valid proof to failed.
+pub async fn verify(
+    cfg: &ZkConfig,
+    proof_b64: &str,
+    expected_input: &ModelInput,
+    expected_output: &ModelOutput,
+) -> ZkOutcome {
     let Ok(proof_bytes) = BASE64.decode(proof_b64) else {
         return ZkOutcome::setup_failure(Value::Null, "invalid base64 proof".to_string());
     };
@@ -333,7 +394,7 @@ pub async fn verify(cfg: &ZkConfig, proof_b64: &str) -> ZkOutcome {
     }
 
     let proof_path = dir.join("proof.json");
-    let outcome = match tokio::fs::write(&proof_path, &proof_bytes).await {
+    let mut outcome = match tokio::fs::write(&proof_path, &proof_bytes).await {
         Ok(_) => {
             let stage = run(
                 cfg,
@@ -373,5 +434,27 @@ pub async fn verify(cfg: &ZkConfig, proof_b64: &str) -> ZkOutcome {
     };
 
     let _ = tokio::fs::remove_dir_all(&dir).await;
+
+    if outcome.success {
+        if let Some(values) = &outcome.circuit_public_values {
+            match check_binding(values, expected_input, expected_output) {
+                Ok(true) => {}
+                Ok(false) => {
+                    outcome.success = false;
+                    outcome.error_message = Some(
+                        "proof is cryptographically valid but its decoded public values do not match this receipt's claimed input/output (binding check failed)"
+                            .to_string(),
+                    );
+                }
+                Err(reason) => {
+                    outcome.stdout_tail = Some(format!(
+                        "{}\n[binding check skipped: {reason}]",
+                        outcome.stdout_tail.unwrap_or_default()
+                    ));
+                }
+            }
+        }
+    }
+
     outcome
 }

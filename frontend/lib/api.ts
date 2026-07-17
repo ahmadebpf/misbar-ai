@@ -33,6 +33,7 @@ export type Receipt = {
   output_hash: string;
   timestamp: string;
   signature: string;
+  zk_proof: string | null;
 };
 
 export type Stats = {

@@ -3,7 +3,7 @@ import { dictionaries, type Locale } from "./dictionaries";
 
 export async function getLocale(): Promise<Locale> {
   const store = await cookies();
-  return store.get("locale")?.value === "ar" ? "ar" : "en";
+  return store.get("locale")?.value === "en" ? "en" : "ar";
 }
 
 export async function getDict() {

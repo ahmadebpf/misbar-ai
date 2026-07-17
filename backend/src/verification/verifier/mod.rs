@@ -29,7 +29,7 @@ pub async fn verify(receipt: &ReceiptRecord, keypair: &Keypair, zk_config: &ZkCo
     let signature_valid = keypair.verify(&payload, &receipt.signature);
 
     let zk_outcome = match &receipt.zk_proof {
-        Some(proof) => Some(zk::verify(zk_config, proof).await),
+        Some(proof) => Some(zk::verify(zk_config, proof, &receipt.input, &receipt.output).await),
         None => None,
     };
     let zk_proof_valid = zk_outcome.as_ref().map(|o| o.success);

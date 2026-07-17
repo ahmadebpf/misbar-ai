@@ -41,8 +41,8 @@ export const dictionaries = {
         },
       ],
       finalTitle: "See it end to end",
-      finalSub: "No signup. Runs against a live credit-decision model.",
-      finalCta: "Try the live demo →",
+      finalSub: "No signup — verify any signed receipt independently.",
+      finalCta: "Verify a receipt independently →",
     },
     dashboard: {
       title: "Dashboard",
@@ -103,6 +103,7 @@ export const dictionaries = {
       disclaimer:
         "Verified against the attestation service at request time. Any mutation to input, output, or model state after signing invalidates this receipt.",
       signedBy: (model: string, version: string) => `Signed by ${model} ${version}`,
+      copyFullReceipt: "Copy full receipt (JSON)",
       technicalDetails: "Technical Details",
       verifySection: "Independent Verification",
       verifyIntro:
@@ -234,8 +235,8 @@ export const dictionaries = {
         },
       ],
       finalTitle: "جرّبها من البداية إلى النهاية",
-      finalSub: "دون تسجيل. تعمل على نموذج حي لقرارات الائتمان.",
-      finalCta: "جرّب العرض التجريبي المباشر ←",
+      finalSub: "دون تسجيل — تحقّق من أي إيصال موقّع بشكل مستقل.",
+      finalCta: "تحقّق من إيصال بشكل مستقل ←",
     },
     dashboard: {
       title: "لوحة التحكم",
@@ -296,6 +297,7 @@ export const dictionaries = {
       disclaimer:
         "تم التحقق من هذا الإيصال مقابل خدمة التوثيق لحظة الطلب. أي تعديل على المدخلات أو المخرجات أو حالة النموذج بعد التوقيع يُبطل هذا الإيصال.",
       signedBy: (model: string, version: string) => `موقّع بواسطة ${model} ${version}`,
+      copyFullReceipt: "نسخ الإيصال الكامل (JSON)",
       technicalDetails: "التفاصيل التقنية",
       verifySection: "تحقق مستقل",
       verifyIntro:

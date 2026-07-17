@@ -126,7 +126,7 @@ export default async function Landing() {
         <h2 className="m-0 mb-3 text-[22px] font-semibold">{t.landing.finalTitle}</h2>
         <p className="m-0 mb-[26px] text-sm text-faint">{t.landing.finalSub}</p>
         <Link
-          href="/demo"
+          href="/verify"
           className="inline-block px-[26px] py-[13px] rounded-md bg-accent/10 border border-accent text-accent text-[14px] font-semibold hover:bg-accent/20 transition-colors"
         >
           {t.landing.finalCta}
