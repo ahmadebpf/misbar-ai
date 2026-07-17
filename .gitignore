@@ -1,8 +1,8 @@
 /target
-bin
-include
-lib
-pyvenv.cfg
+model/bin
+model/include
+model/lib
+model/pyvenv.cfg
 .idea
 docs/
 backend/circuit/
